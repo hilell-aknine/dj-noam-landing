@@ -50,6 +50,7 @@ body{
   transition:all .4s;
 }
 .nav.scrolled{border-bottom-color:var(--gray-200);box-shadow:0 2px 20px rgba(0,0,0,0.04)}
+.nav-logo{display:flex;align-items:center;text-decoration:none}
 .nav-logo img{height:40px;width:auto}
 .nav-links{display:flex;gap:28px;align-items:center;list-style:none}
 .nav-links a{
@@ -317,60 +318,141 @@ select.field option{background:var(--white)}
 .rv-4{transition-delay:.4s}.rv-5{transition-delay:.5s}
 
 /* ===== RESPONSIVE ===== */
+
+/* Tablet */
 @media(max-width:1024px){
   .exp-grid{grid-template-columns:1fr 1fr}
   .svc-grid{grid-template-columns:repeat(3,1fr)}
+  .hero-content{padding:120px 40px 60px 24px}
 }
+
+/* Mobile */
 @media(max-width:768px){
-  .nav{padding:12px 16px}
+  /* --- Nav --- */
+  .nav{padding:10px 16px}
+  .nav-logo img,.nav img{height:34px!important}
   .nav-links{display:none}
   .nav-links.open{
     display:flex;flex-direction:column;position:absolute;top:100%;right:0;left:0;
     background:rgba(255,255,255,0.98);backdrop-filter:blur(20px);
-    padding:16px 24px 24px;gap:14px;border-bottom:1px solid var(--gray-200);
+    padding:20px 24px 28px;gap:18px;border-bottom:1px solid var(--gray-200);
+    box-shadow:0 8px 30px rgba(0,0,0,0.08);
   }
+  .nav-links a{font-size:1rem}
+  .nav-cta-btn{text-align:center;display:block;padding:12px 20px!important}
   .nav-toggle{display:block}
+
+  /* --- Hero --- */
   .hero{grid-template-columns:1fr;min-height:auto}
   .hero::after{display:none}
-  .hero-content{padding:100px 20px 40px}
-  .hero h1{font-size:clamp(1.8rem,7vw,2.6rem)}
-  .hero-body{font-size:1rem}
-  .hero-quote{font-size:.9rem;padding-right:16px;margin-bottom:32px}
-  .hero-btns{flex-direction:column;gap:10px}
-  .hero-btns .btn{text-align:center;justify-content:center;width:100%;padding:14px 24px}
-  .hero-visual{height:50vh;min-height:300px}
-  .about-grid{grid-template-columns:1fr;gap:36px}
-  .about-img-wrap{max-width:280px;margin:0 auto}
-  .about-img-badge{font-size:.85rem;padding:10px 16px;bottom:-12px;left:-8px}
-  .section-title{font-size:clamp(1.5rem,6vw,2.2rem)}
-  .exp-grid{grid-template-columns:1fr 1fr}
-  .exp-card{border-left:none;border-bottom:1px solid rgba(255,255,255,0.06);padding:28px 16px}
-  .exp-card:last-child{border-bottom:none}
-  .exp-card-num{font-size:1.8rem}
-  .exp-result{font-size:1rem;padding:20px 16px}
+  .hero-content{padding:90px 20px 36px;text-align:center}
+  .hero-tag{margin:0 auto 20px;font-size:.72rem}
+  .hero h1{font-size:clamp(1.7rem,7vw,2.4rem);line-height:1.3}
+  .hero-body{font-size:.95rem;margin:0 auto 16px;max-width:100%;line-height:1.8}
+  .hero-quote{
+    font-size:.88rem;padding-right:16px;margin:0 auto 28px;
+    max-width:100%;text-align:right;
+  }
+  .hero-btns{flex-direction:column;gap:10px;align-items:stretch}
+  .hero-btns .btn{
+    text-align:center;justify-content:center;width:100%;
+    padding:15px 20px;font-size:.95rem;border-radius:10px;
+  }
+  .hero-visual{height:45vh;min-height:280px}
+
+  /* --- Marquee --- */
+  .marquee{font-size:.7rem;padding:10px 0;letter-spacing:1px}
+
+  /* --- Sections general --- */
+  .section{padding:56px 18px}
+  .section-tag{font-size:.7rem;letter-spacing:2.5px;margin-bottom:10px}
+  .section-title{font-size:clamp(1.4rem,6vw,2rem);margin-bottom:14px}
+  .section-sub{font-size:.92rem;margin-bottom:36px}
+
+  /* --- About --- */
+  .about-grid{grid-template-columns:1fr;gap:32px}
+  .about-img-wrap{max-width:240px;margin:0 auto}
+  .about-img{border-width:3px;border-radius:12px}
+  .about-img-badge{font-size:.8rem;padding:8px 14px;bottom:-10px;left:-6px;border-radius:8px}
+  .about-text p{font-size:.95rem;line-height:1.85;margin-bottom:12px}
+  .about-name{font-size:1.1rem;margin-top:20px;padding-top:16px}
+
+  /* --- Experience --- */
+  .exp-grid{grid-template-columns:1fr 1fr;gap:0}
+  .exp-card{
+    padding:24px 16px;text-align:right;
+    border-left:none;
+    border-bottom:1px solid rgba(255,255,255,0.06);
+  }
+  .exp-card:nth-child(odd){border-left:1px solid rgba(255,255,255,0.06)}
+  .exp-card:nth-last-child(-n+2){border-bottom:none}
+  .exp-card-num{font-size:1.6rem;margin-bottom:10px}
+  .exp-card h3{font-size:.95rem;margin-bottom:6px}
+  .exp-card p{font-size:.82rem}
+  .exp-result{font-size:.92rem;padding:18px 14px;border-radius:8px}
+
+  /* --- Services --- */
   .svc-grid{grid-template-columns:1fr 1fr;gap:10px}
-  .svc-item{padding:24px 12px}
-  .svc-ico{width:48px;height:48px}
-  .svc-item h3{font-size:.82rem}
-  .test-grid{grid-template-columns:1fr}
-  .test-card{padding:28px 20px}
-  .section{padding:64px 16px}
-  .cta{padding:64px 16px}
-  .cta h2{font-size:clamp(1.6rem,5.5vw,2.2rem)}
+  .svc-item{padding:22px 10px;border-radius:10px}
+  .svc-ico{width:44px;height:44px;margin-bottom:10px}
+  .svc-item h3{font-size:.82rem;line-height:1.4}
+  .svc-note{font-size:.9rem;margin-top:24px}
+
+  /* --- Testimonials --- */
+  .test-grid{grid-template-columns:1fr;gap:16px}
+  .test-shot{border-radius:10px}
+  .test-card{padding:24px 18px;border-radius:10px}
+  .test-txt{font-size:.92rem;line-height:1.8;margin-bottom:18px}
+  .test-who{padding-top:16px}
+  .test-av{width:38px;height:38px;font-size:.95rem;border-radius:8px}
+  .test-name{font-size:.88rem}
+
+  /* --- CTA --- */
+  .cta{padding:56px 18px}
+  .cta h2{font-size:clamp(1.4rem,5.5vw,2rem)}
+  .cta-sub{font-size:.95rem;margin-bottom:32px}
   .cta-btns{flex-direction:column;gap:10px}
-  .cta-btns .btn{width:100%;justify-content:center;text-align:center}
-  .form-row{grid-template-columns:1fr}
-  .footer{padding:32px 16px 24px}
-  .footer-inner{justify-content:center;text-align:center}
-  .marquee{font-size:.72rem;padding:10px 0}
+  .cta-btns .btn{
+    width:100%;justify-content:center;text-align:center;
+    padding:15px 20px;border-radius:10px;font-size:.95rem;
+  }
+  .cta-or{margin-bottom:24px}
+  .form{gap:10px}
+  .form-row{grid-template-columns:1fr;gap:10px}
+  .field{padding:13px 16px;font-size:.92rem;border-radius:8px}
+  .btn-submit{padding:15px;font-size:.95rem;border-radius:10px}
+
+  /* --- Footer --- */
+  .footer{padding:32px 18px 24px}
+  .footer-inner{flex-direction:column;align-items:center;text-align:center;gap:16px}
+  .footer-brand{font-size:.9rem}
+  .soc{width:42px;height:42px;border-radius:8px}
+  .footer-copy{font-size:.72rem;margin-top:16px;padding-top:16px}
 }
+
+/* Small phones */
 @media(max-width:380px){
-  .svc-grid{grid-template-columns:1fr 1fr;gap:8px}
-  .svc-item{padding:20px 10px}
-  .svc-ico{width:40px;height:40px}
-  .svc-item h3{font-size:.78rem}
-  .hero-content{padding:90px 16px 32px}
+  .hero-content{padding:84px 14px 28px}
+  .hero h1{font-size:1.5rem}
+  .hero-body{font-size:.88rem}
+  .hero-quote{font-size:.82rem;padding-right:12px}
+  .hero-visual{height:38vh;min-height:240px}
+
+  .section{padding:44px 14px}
+  .section-title{font-size:1.3rem}
+
+  .svc-grid{gap:8px}
+  .svc-item{padding:18px 8px}
+  .svc-ico{width:36px;height:36px}
+  .svc-item h3{font-size:.75rem}
+
   .exp-grid{grid-template-columns:1fr}
+  .exp-card{text-align:center}
+  .exp-card:nth-child(odd){border-left:none}
+
+  .cta{padding:44px 14px}
+  .cta h2{font-size:1.3rem}
+  .cta-btns .btn{padding:14px 16px;font-size:.88rem}
 }
 </style>
 </head>
@@ -378,7 +460,7 @@ select.field option{background:var(--white)}
 
 <!-- NAV -->
 <nav class="nav" id="nav">
-  <a href="#hero"><img src="images/logo.jpeg" alt="DJ Noam" style="height:40px"></a>
+  <a href="#hero" class="nav-logo"><img src="images/logo.jpeg" alt="DJ Noam"></a>
   <button class="nav-toggle" id="navToggle" aria-label="תפריט">
     <span></span><span></span><span></span>
   </button>
