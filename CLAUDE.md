@@ -54,3 +54,6 @@ git push  # auto-deploys to Vercel from master
 - All text in Hebrew, RTL. Marketing copy should be customer-focused (benefits, not features).
 - Keep everything in one HTML file. No external CSS/JS files.
 - Service icons are custom images, not SVGs or emoji.
+
+## Remote Server
+A secondary machine at `192.168.1.125` is available. Not needed for this project — it's a static single-page site deployed via Vercel.
