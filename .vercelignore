@@ -1,0 +1,24 @@
+# ורסל פורס את כל הריפו כברירת מחדל. כל מה שאינו האתר עצמו נחסם כאן.
+
+# סודות והפעלה מקומית
+start_claude.bat
+*.env
+.env*
+.secrets/
+
+# תשתית סופהבייס (סכימה, מיגרציות, קוד שרת) לא צריכה להיות מוגשת כקבצים סטטיים
+supabase/
+
+# מוח הפרויקט ומסמכים פנימיים
+CLAUDE.md
+SKILL.md
+primer.md
+hindsight.md
+project_config.json
+*.md
+מה-זה.txt
+
+# רעש
+node_modules/
+.playwright-mcp/
+*.log

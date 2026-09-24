@@ -1455,6 +1455,9 @@ textarea.field{resize:vertical;min-height:92px;font-family:'Heebo'}
     setTimeout(()=>toast.classList.remove('show'),duration);
   }
 
+  // היעד שאליו נשלחת כל פנייה מהטופס. הפונקציה בשרת, המפתח לא נחשף כאן.
+  const LEAD_ENDPOINT='https://fbfzjstjxsueajwpdans.supabase.co/functions/v1/submit-lead';
+
   // Form submit (mini + main)
   window.handleSubmit=function(e){
     e.preventDefault();
@@ -1474,6 +1477,21 @@ textarea.field{resize:vertical;min-height:92px;font-family:'Heebo'}
     msg+=`\nטלפון: ${phone}`;
     if(pref)msg+=`\nמעדיף/ה: ${pref==='whatsapp'?'וואטסאפ':pref==='phone'?'שיחה':'שניהם'}`;
     if(message)msg+=`\nפרטים: ${message}`;
+
+    // שמירת הפנייה במערכת של נועם. רץ במקביל ולא מעכב את הוואטסאפ,
+    // כך שגם אם השרת איטי או נפל, הלקוח לא מרגיש כלום.
+    try{
+      fetch(LEAD_ENDPOINT,{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({
+          name:name,phone:phone,event_type:eventType,
+          event_date:eventDate,message:message,contact_pref:pref,
+          company:d.get('company')||''
+        }),
+        keepalive:true
+      }).catch(()=>{});
+    }catch(_){}
 
     // dataLayer event for future GA4
     (window.dataLayer=window.dataLayer||[]).push({

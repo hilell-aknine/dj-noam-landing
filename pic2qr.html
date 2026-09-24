@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pic2QR | המר את התמונה שלך לקוד QR</title>
+<meta name="description" content="העלה תמונה, קבל קישור ישיר וקוד QR סרוק שכולם יכולים לפתוח מכל מכשיר.">
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: { sans: ['Heebo', 'system-ui', 'sans-serif'] },
+        keyframes: {
+          floatIn: { '0%': { opacity: '0', transform: 'translateY(14px)' }, '100%': { opacity: '1', transform: 'translateY(0)' } },
+          pop:     { '0%': { opacity: '0', transform: 'scale(.92)' },       '100%': { opacity: '1', transform: 'scale(1)' } },
+          toastIn: { '0%': { opacity: '0', transform: 'translateY(20px)' }, '100%': { opacity: '1', transform: 'translateY(0)' } }
+        },
+        animation: {
+          floatIn: 'floatIn .5s ease-out both',
+          pop:     'pop .35s ease-out both',
+          toastIn: 'toastIn .3s ease-out both'
+        }
+      }
+    }
+  }
+</script>
+
+<style>
+  html { scroll-behavior: smooth; }
+  body { -webkit-font-smoothing: antialiased; }
+
+  /* qrcode.js מזריק canvas או img, תלוי בדפדפן. לא נוגעים ב-display שהספרייה קובעת. */
+  #qrBox canvas, #qrBox img { width: 100% !important; height: auto !important; max-width: 256px; margin-inline: auto; border-radius: 12px; }
+
+  .dz-active { border-color: #6366f1 !important; background-color: #eef2ff !important; transform: scale(1.01); }
+
+  /* מסתירים את חץ ה-spinner של הכפתור כשאין טעינה */
+  .spinner { border-top-color: transparent; }
+</style>
+</head>
+
+<body class="min-h-screen font-sans bg-gradient-to-br from-indigo-600 via-violet-600 to-fuchsia-600 text-slate-800">
+
+<div class="min-h-screen px-4 py-10 md:py-16">
+  <div class="max-w-5xl mx-auto">
+
+    <!-- ===================== HERO ===================== -->
+    <header class="text-center mb-8 md:mb-12 animate-floatIn">
+      <div class="inline-flex items-center gap-2 bg-white/15 backdrop-blur-sm text-white/95 px-4 py-1.5 rounded-full text-sm font-medium mb-5 ring-1 ring-white/25">
+        <span class="w-2 h-2 rounded-full bg-emerald-300"></span>
+        Pic2QR
+      </div>
+      <h1 class="text-3xl md:text-5xl font-black text-white leading-tight drop-shadow-sm">
+        המר את התמונה שלך לקוד QR ברגע!
+      </h1>
+      <p class="mt-4 text-base md:text-lg text-white/85 max-w-2xl mx-auto leading-relaxed">
+        העלה תמונה, קבל קישור ישיר וקוד QR סרוק שכולם יכולים לפתוח מכל מכשיר.
+      </p>
+    </header>
+
+    <!-- ===================== MAIN CARD ===================== -->
+    <main class="bg-white rounded-2xl shadow-2xl shadow-indigo-950/25 ring-1 ring-black/5 overflow-hidden animate-pop">
+
+      <!-- ---------- סרגל חיבור לענן ---------- -->
+      <div class="flex flex-wrap items-center justify-between gap-3 px-6 md:px-8 lg:px-10 py-3.5 bg-slate-900 text-white">
+        <div class="flex items-center gap-2.5 text-sm">
+          <span id="authDot" class="w-2.5 h-2.5 rounded-full bg-amber-400 shrink-0"></span>
+          <span id="authText">מצב מקומי. הקישור יעבוד רק בדפדפן הזה.</span>
+        </div>
+
+        <form id="authForm" class="flex flex-wrap items-center gap-2">
+          <input id="authEmail" type="email" autocomplete="username" placeholder="אימייל"
+                 class="w-40 text-sm bg-white/10 rounded-lg px-3 py-2 placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-indigo-400">
+          <input id="authPass" type="password" autocomplete="current-password" placeholder="סיסמה"
+                 class="w-32 text-sm bg-white/10 rounded-lg px-3 py-2 placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-indigo-400">
+          <button type="submit" id="authLoginBtn"
+                  class="text-sm font-bold bg-indigo-500 hover:bg-indigo-400 px-4 py-2 rounded-lg transition">התחבר</button>
+        </form>
+
+        <button id="authLogoutBtn" type="button"
+                class="hidden text-sm font-semibold text-white/70 hover:text-white px-3 py-2 rounded-lg hover:bg-white/10 transition">התנתק</button>
+      </div>
+
+      <div class="grid md:grid-cols-2">
+
+        <!-- ---------- צד ימין (בעברית: ראשון) = העלאה ---------- -->
+        <section class="p-6 md:p-8 lg:p-10 border-b md:border-b-0 md:border-l border-slate-100">
+          <h2 class="text-lg font-bold text-slate-900 flex items-center gap-2 mb-1">
+            <span class="w-7 h-7 rounded-lg bg-indigo-100 text-indigo-600 grid place-items-center text-sm font-black">1</span>
+            בחירת תמונה
+          </h2>
+          <p id="uploadHint" class="text-sm text-slate-500 mb-5">הקובץ נשאר אצלך בדפדפן, לא נשלח לשום מקום.</p>
+
+          <!-- אזור גרירה -->
+          <div id="dropzone" tabindex="0" role="button"
+               aria-label="גרור לכאן תמונה, או לחץ לבחירת קובץ"
+               class="cursor-pointer rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 hover:bg-indigo-50 hover:border-indigo-400 transition-all duration-200 p-8 text-center focus:outline-none focus:ring-4 focus:ring-indigo-200">
+            <div class="mx-auto w-14 h-14 rounded-2xl bg-white shadow-sm ring-1 ring-slate-200 grid place-items-center mb-4">
+              <svg class="w-7 h-7 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 16V4m0 0L8 8m4-4 4 4M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/>
+              </svg>
+            </div>
+            <p class="font-semibold text-slate-700 leading-relaxed">
+              גרור לכאן תמונה, או לחץ לבחירת קובץ
+            </p>
+            <p class="text-sm text-slate-400 mt-1">(תומך בקבצי JPG, PNG, WEBP)</p>
+          </div>
+          <input id="fileInput" type="file" accept="image/jpeg,image/png,image/webp" class="hidden">
+
+          <!-- תצוגה מקדימה -->
+          <div id="previewWrap" class="hidden mt-5 animate-pop">
+            <div class="relative rounded-2xl overflow-hidden ring-1 ring-slate-200 bg-slate-100">
+              <img id="previewImg" alt="תצוגה מקדימה של התמונה שנבחרה" class="w-full max-h-64 object-contain bg-white">
+              <button id="clearFileBtn" type="button" title="הסר תמונה"
+                      class="absolute top-2 left-2 w-8 h-8 rounded-full bg-black/60 hover:bg-black/80 text-white grid place-items-center transition">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
+                  <path stroke-linecap="round" d="M6 6l12 12M18 6L6 18"/>
+                </svg>
+              </button>
+            </div>
+            <div class="flex items-center justify-between gap-3 mt-3 text-sm">
+              <span id="fileName" class="font-medium text-slate-700 truncate"></span>
+              <span id="fileSize" dir="ltr" class="shrink-0 text-slate-400"></span>
+            </div>
+          </div>
+
+          <!-- כפתור יצירה -->
+          <button id="generateBtn" type="button" disabled
+                  class="mt-6 w-full py-4 rounded-2xl font-bold text-white text-lg bg-gradient-to-l from-indigo-600 to-violet-600 shadow-lg shadow-indigo-500/30 hover:shadow-xl hover:shadow-indigo-500/40 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none disabled:translate-y-0 flex items-center justify-center gap-2">
+            <span id="generateSpinner" class="hidden spinner w-5 h-5 border-2 border-white rounded-full animate-spin"></span>
+            <span id="generateLabel">צור קוד QR לתמונה 🚀</span>
+          </button>
+
+          <p id="errorMsg" class="hidden mt-3 text-sm font-medium text-rose-600 bg-rose-50 ring-1 ring-rose-100 rounded-xl px-3 py-2"></p>
+        </section>
+
+        <!-- ---------- צד שמאל = פלט QR ---------- -->
+        <section class="p-6 md:p-8 lg:p-10 bg-slate-50/60">
+
+          <!-- מצב התחלתי -->
+          <div id="qrPlaceholder" class="h-full min-h-[340px] flex flex-col items-center justify-center text-center">
+            <div class="w-20 h-20 rounded-3xl bg-white ring-1 ring-slate-200 shadow-sm grid place-items-center mb-5">
+              <svg class="w-10 h-10 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 4h6v6H4V4Zm10 0h6v6h-6V4ZM4 14h6v6H4v-6Zm10 4h2m4 0h.01M14 14h.01M18 14h2m0 4v2"/>
+              </svg>
+            </div>
+            <p class="font-bold text-slate-600">קוד ה-QR יופיע כאן</p>
+            <p class="text-sm text-slate-400 mt-1 max-w-xs leading-relaxed">בחר תמונה בצד השני ולחץ על כפתור היצירה.</p>
+          </div>
+
+          <!-- מצב הצלחה -->
+          <div id="qrResult" class="hidden animate-pop">
+            <h2 class="text-lg font-bold text-slate-900 text-center">קוד ה-QR שלך מוכן! 🎉</h2>
+
+            <div id="qrBox" class="mt-5 mx-auto w-fit bg-white p-4 rounded-2xl ring-1 ring-slate-200 shadow-sm"></div>
+
+            <!-- קישור ישיר -->
+            <div class="mt-6">
+              <label for="linkField" class="block text-sm font-semibold text-slate-600 mb-2">הקישור הישיר לתמונה</label>
+              <input id="linkField" type="text" readonly dir="ltr"
+                     class="w-full text-left text-xs font-mono bg-white rounded-xl ring-1 ring-slate-200 px-3 py-3 text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-400">
+            </div>
+
+            <!-- פעולות -->
+            <div class="mt-4 space-y-2.5">
+              <button id="copyBtn" type="button"
+                      class="w-full py-3 rounded-xl font-bold text-indigo-700 bg-indigo-50 ring-1 ring-indigo-200 hover:bg-indigo-100 active:scale-[.99] transition">
+                העתק קישור ישיר 🔗
+              </button>
+              <button id="downloadBtn" type="button"
+                      class="w-full py-3 rounded-xl font-bold text-white bg-slate-900 hover:bg-slate-800 active:scale-[.99] shadow-lg shadow-slate-900/20 transition">
+                הורד קוד QR (PNG) 📥
+              </button>
+              <button id="resetBtn" type="button"
+                      class="w-full py-3 rounded-xl font-bold text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition">
+                צור קוד חדש 🔄
+              </button>
+            </div>
+
+            <!-- הערת שקיפות: מופיעה רק כשהקישור מקומי -->
+            <p id="localLinkNote" class="hidden mt-5 text-xs leading-relaxed text-amber-800 bg-amber-50 ring-1 ring-amber-200 rounded-xl px-3 py-2.5">
+              שים לב: אתה לא מחובר, ולכן הקישור מקומי לדפדפן הזה בלבד וסריקה ממכשיר אחר לא תפתח את התמונה.
+              התחבר בסרגל העליון כדי לקבל קישור קבוע שנסרק מכל טלפון.
+            </p>
+          </div>
+
+        </section>
+      </div>
+    </main>
+
+    <p class="text-center text-white/60 text-sm mt-8">
+      Pic2QR · כל העיבוד רץ בדפדפן שלך
+    </p>
+  </div>
+</div>
+
+<!-- ===================== TOASTS ===================== -->
+<div id="toastZone" class="fixed bottom-5 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center gap-2 w-[min(92vw,26rem)]"></div>
+
+<script>
+/* ============================================================
+   CONFIG — סופהבייס של נועם
+   מחובר  -> התמונה עולה לאחסון, וה-QR מצביע על כתובת ציבורית קבועה
+   מנותק  -> הקוד מצביע על blob מקומי (עובד רק בדפדפן הזה)
+   ============================================================ */
+const SUPA = {
+  url    : 'https://fbfzjstjxsueajwpdans.supabase.co',
+  anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZiZnpqc3RqeHN1ZWFqd3BkYW5zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAyNDA5NzYsImV4cCI6MjEwNTgxNjk3Nn0.IkQl36Iy_ThSdvk1OhGrSnStnH2aa5NY_cf77_kH2hc',
+  bucket : 'pics'
+};
+
+const sb = window.supabase.createClient(SUPA.url, SUPA.anonKey);
+
+const MAX_BYTES  = 10 * 1024 * 1024;
+const ALLOWED    = ['image/jpeg', 'image/png', 'image/webp'];
+const QR_PIXELS  = 1024;        // רזולוציית הייצור, מוקטנת ויזואלית ב-CSS
+
+/* ---------- טעינת ספריית ה-QR עם גיבוי בין ספקים ---------- */
+const QR_SOURCES = [
+  'https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js',
+  'https://cdn.jsdelivr.net/gh/davidshimjs/qrcodejs@gh-pages/qrcode.min.js',
+  'https://unpkg.com/qrcodejs@1.0.0/qrcode.min.js'
+];
+
+let qrLibPromise = null;
+function loadQrLib() {
+  if (window.QRCode) return Promise.resolve();
+  if (qrLibPromise) return qrLibPromise;
+
+  qrLibPromise = new Promise((resolve, reject) => {
+    let i = 0;
+    (function next() {
+      if (i >= QR_SOURCES.length) return reject(new Error('qr-lib-unavailable'));
+      const s = document.createElement('script');
+      s.src = QR_SOURCES[i++];
+      s.onload  = () => window.QRCode ? resolve() : next();
+      s.onerror = next;
+      document.head.appendChild(s);
+    })();
+  });
+  return qrLibPromise;
+}
+loadQrLib().catch(() => {});   // חימום מוקדם, בלי להפיל את הדף
+
+/* ---------- אלמנטים ---------- */
+const el = id => document.getElementById(id);
+const dropzone     = el('dropzone');
+const fileInput    = el('fileInput');
+const previewWrap  = el('previewWrap');
+const previewImg   = el('previewImg');
+const fileNameEl   = el('fileName');
+const fileSizeEl   = el('fileSize');
+const clearFileBtn = el('clearFileBtn');
+const generateBtn  = el('generateBtn');
+const genSpinner   = el('generateSpinner');
+const genLabel     = el('generateLabel');
+const errorMsg     = el('errorMsg');
+const qrPlaceholder= el('qrPlaceholder');
+const qrResult     = el('qrResult');
+const qrBox        = el('qrBox');
+const linkField    = el('linkField');
+const copyBtn      = el('copyBtn');
+const downloadBtn  = el('downloadBtn');
+const resetBtn     = el('resetBtn');
+const localNote    = el('localLinkNote');
+const toastZone    = el('toastZone');
+
+/* ---------- מצב ---------- */
+let state = { file: null, objectUrl: null, qrUrl: null, busy: false };
+
+/* ---------- עזרי UI ---------- */
+function toast(message, type = 'success') {
+  const tone = type === 'error'
+    ? 'bg-rose-600'
+    : type === 'info' ? 'bg-slate-800' : 'bg-emerald-600';
+
+  const t = document.createElement('div');
+  t.className = `${tone} text-white text-sm font-semibold px-4 py-3 rounded-xl shadow-xl w-full text-center animate-toastIn`;
+  t.textContent = message;
+  toastZone.appendChild(t);
+
+  setTimeout(() => {
+    t.style.transition = 'opacity .3s, transform .3s';
+    t.style.opacity = '0';
+    t.style.transform = 'translateY(10px)';
+    setTimeout(() => t.remove(), 300);
+  }, 3000);
+}
+
+function showError(msg) {
+  errorMsg.textContent = msg;
+  errorMsg.classList.remove('hidden');
+}
+function clearError() {
+  errorMsg.classList.add('hidden');
+  errorMsg.textContent = '';
+}
+
+function prettySize(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / 1024 / 1024).toFixed(2) + ' MB';
+}
+
+function setBusy(on) {
+  state.busy = on;
+  generateBtn.disabled = on || !state.file;
+  genSpinner.classList.toggle('hidden', !on);
+  genLabel.textContent = on ? 'מייצר קוד...' : 'צור קוד QR לתמונה 🚀';
+}
+
+/* ---------- קליטת קובץ ---------- */
+function acceptFile(file) {
+  clearError();
+
+  if (!file) return;
+  if (!ALLOWED.includes(file.type)) {
+    showError('סוג הקובץ לא נתמך. אפשר להעלות JPG, PNG או WEBP בלבד.');
+    return;
+  }
+  if (file.size > MAX_BYTES) {
+    showError(`הקובץ גדול מדי (${prettySize(file.size)}). המגבלה היא 10 MB.`);
+    return;
+  }
+
+  if (state.objectUrl) URL.revokeObjectURL(state.objectUrl);
+
+  state.file      = file;
+  state.objectUrl = URL.createObjectURL(file);
+
+  previewImg.src = state.objectUrl;
+  fileNameEl.textContent = file.name;
+  fileSizeEl.textContent = prettySize(file.size);
+  previewWrap.classList.remove('hidden');
+  generateBtn.disabled = false;
+}
+
+function clearFile() {
+  if (state.objectUrl) URL.revokeObjectURL(state.objectUrl);
+  state.file = null;
+  state.objectUrl = null;
+  fileInput.value = '';
+  previewImg.removeAttribute('src');
+  previewWrap.classList.add('hidden');
+  generateBtn.disabled = true;
+  clearError();
+}
+
+/* ---------- אירועי העלאה ---------- */
+dropzone.addEventListener('click', () => fileInput.click());
+dropzone.addEventListener('keydown', e => {
+  if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInput.click(); }
+});
+
+['dragenter', 'dragover'].forEach(evt =>
+  dropzone.addEventListener(evt, e => {
+    e.preventDefault(); e.stopPropagation();
+    dropzone.classList.add('dz-active');
+  })
+);
+['dragleave', 'drop'].forEach(evt =>
+  dropzone.addEventListener(evt, e => {
+    e.preventDefault(); e.stopPropagation();
+    dropzone.classList.remove('dz-active');
+  })
+);
+dropzone.addEventListener('drop', e => {
+  const f = e.dataTransfer?.files?.[0];
+  if (f) acceptFile(f);
+});
+
+fileInput.addEventListener('change', e => acceptFile(e.target.files[0]));
+clearFileBtn.addEventListener('click', clearFile);
+
+/* ---------- חיבור לחשבון ---------- */
+const authDot    = el('authDot');
+const authText   = el('authText');
+const authForm   = el('authForm');
+const authEmail  = el('authEmail');
+const authPass   = el('authPass');
+const authLogout = el('authLogoutBtn');
+
+function renderAuth(session) {
+  const on = !!session;
+  authDot.className = `w-2.5 h-2.5 rounded-full shrink-0 ${on ? 'bg-emerald-400' : 'bg-amber-400'}`;
+  authText.textContent = on
+    ? `מחובר כ-${session.user.email}. הקישורים קבועים ונסרקים מכל טלפון.`
+    : 'מצב מקומי. הקישור יעבוד רק בדפדפן הזה.';
+  authForm.classList.toggle('hidden', on);
+  authLogout.classList.toggle('hidden', !on);
+
+  // הכיתוב חייב להגיד את האמת. במצב מחובר הקובץ באמת נשלח לאחסון.
+  el('uploadHint').textContent = on
+    ? 'הקובץ נשמר באחסון הפרטי שלך ומקבל כתובת ציבורית קבועה.'
+    : 'הקובץ נשאר אצלך בדפדפן, לא נשלח לשום מקום.';
+}
+
+sb.auth.getSession().then(({ data }) => renderAuth(data.session));
+sb.auth.onAuthStateChange((_e, session) => renderAuth(session));
+
+authForm.addEventListener('submit', async e => {
+  e.preventDefault();
+  const email = authEmail.value.trim();
+  const password = authPass.value;
+  if (!email || !password) return;
+
+  const { error } = await sb.auth.signInWithPassword({ email, password });
+  if (error) { toast('ההתחברות נכשלה. בדוק אימייל וסיסמה.', 'error'); return; }
+
+  authPass.value = '';
+  toast('התחברת בהצלחה. מעכשיו הקישורים קבועים.');
+});
+
+authLogout.addEventListener('click', async () => {
+  await sb.auth.signOut();
+  toast('התנתקת. חזרנו למצב מקומי.', 'info');
+});
+
+/* ---------- העלאה לאחסון של נועם ---------- */
+function safeId() {
+  try { return crypto.randomUUID(); }
+  catch {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+      const r = Math.random() * 16 | 0;
+      return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+    });
+  }
+}
+
+async function resolvePublicUrl(file) {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) return { url: state.objectUrl, isLocal: true };
+
+  // שמות קבצים בעברית אינם מפתחות חוקיים באחסון. מייצרים שם אנגלי.
+  const ext  = (file.name.split('.').pop() || 'png').toLowerCase().replace(/[^a-z0-9]/g, '') || 'png';
+  const path = `${safeId()}.${ext}`;
+
+  const { error: upErr } = await sb.storage
+    .from(SUPA.bucket)
+    .upload(path, file, { contentType: file.type, upsert: false });
+  if (upErr) throw upErr;
+
+  const { data } = sb.storage.from(SUPA.bucket).getPublicUrl(path);
+  const url = data.publicUrl;
+
+  // רישום בטבלה. כישלון כאן לא אמור להפיל את היצירה, התמונה כבר באוויר.
+  try {
+    await sb.from('qr_images').insert({
+      storage_path : path,
+      public_url   : url,
+      original_name: file.name,
+      mime         : file.type,
+      size_bytes   : file.size
+    });
+  } catch (_) {}
+
+  return { url, isLocal: false };
+}
+
+/* ---------- יצירת ה-QR ---------- */
+async function generate() {
+  if (!state.file || state.busy) return;
+  clearError();
+  setBusy(true);
+
+  try {
+    await loadQrLib();
+  } catch {
+    setBusy(false);
+    showError('לא הצלחנו לטעון את ספריית ה-QR. בדוק את החיבור לאינטרנט ונסה שוב.');
+    toast('טעינת ספריית ה-QR נכשלה', 'error');
+    return;
+  }
+
+  let resolved;
+  try {
+    resolved = await resolvePublicUrl(state.file);
+  } catch (err) {
+    setBusy(false);
+    showError('העלאת התמונה לאחסון נכשלה: ' + (err?.message || 'שגיאה לא ידועה'));
+    toast('העלאת התמונה נכשלה', 'error');
+    return;
+  }
+
+  // קיבולת QR: כתובת ארוכה מדי לא תיסרק
+  if (resolved.url.length > 1200) {
+    setBusy(false);
+    showError('הקישור ארוך מדי בשביל קוד QR. צריך כתובת קצרה מאחסון חיצוני.');
+    return;
+  }
+
+  state.qrUrl = resolved.url;
+  qrBox.innerHTML = '';
+
+  new QRCode(qrBox, {
+    text: resolved.url,
+    width: QR_PIXELS,
+    height: QR_PIXELS,
+    colorDark: '#1e1b4b',
+    colorLight: '#ffffff',
+    correctLevel: QRCode.CorrectLevel.M
+  });
+
+  linkField.value = resolved.url;
+  localNote.classList.toggle('hidden', !resolved.isLocal);
+
+  qrPlaceholder.classList.add('hidden');
+  qrResult.classList.remove('hidden');
+
+  setBusy(false);
+  toast('התמונה הועלתה והקישור נוצר בהצלחה!');
+}
+
+generateBtn.addEventListener('click', generate);
+
+/* ---------- העתקה ---------- */
+async function copyLink() {
+  const text = linkField.value;
+  if (!text) return;
+
+  let ok = false;
+  try {
+    await navigator.clipboard.writeText(text);
+    ok = true;
+  } catch {
+    // גיבוי לסביבות שבהן clipboard API חסום, למשל פתיחה מקובץ מקומי
+    linkField.select();
+    linkField.setSelectionRange(0, 99999);
+    try { ok = document.execCommand('copy'); } catch { ok = false; }
+    window.getSelection()?.removeAllRanges();
+  }
+
+  if (!ok) { toast('ההעתקה נחסמה. סמן את הקישור והעתק ידנית.', 'error'); return; }
+
+  const original = copyBtn.textContent;
+  copyBtn.textContent = 'הועתק!';
+  copyBtn.classList.add('bg-emerald-50', 'text-emerald-700', 'ring-emerald-200');
+  copyBtn.classList.remove('bg-indigo-50', 'text-indigo-700', 'ring-indigo-200');
+
+  setTimeout(() => {
+    copyBtn.textContent = original;
+    copyBtn.classList.remove('bg-emerald-50', 'text-emerald-700', 'ring-emerald-200');
+    copyBtn.classList.add('bg-indigo-50', 'text-indigo-700', 'ring-indigo-200');
+  }, 2000);
+
+  toast('הקישור הועתק ללוח בהצלחה!');
+}
+copyBtn.addEventListener('click', copyLink);
+
+/* ---------- הורדת PNG ---------- */
+downloadBtn.addEventListener('click', () => {
+  const canvas = qrBox.querySelector('canvas');
+  const img    = qrBox.querySelector('img');
+
+  let dataUrl = null;
+  try {
+    if (canvas) dataUrl = canvas.toDataURL('image/png');
+    else if (img && img.src.startsWith('data:')) dataUrl = img.src;
+  } catch { dataUrl = null; }
+
+  if (!dataUrl) { toast('לא הצלחנו להכין את הקובץ להורדה', 'error'); return; }
+
+  const base = (state.file?.name || 'image').replace(/\.[^.]+$/, '');
+  const a = document.createElement('a');
+  a.href = dataUrl;
+  a.download = `pic2qr-${base}.png`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+});
+
+/* ---------- איפוס ---------- */
+resetBtn.addEventListener('click', () => {
+  clearFile();
+  state.qrUrl = null;
+  qrBox.innerHTML = '';
+  linkField.value = '';
+  localNote.classList.add('hidden');
+  qrResult.classList.add('hidden');
+  qrPlaceholder.classList.remove('hidden');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+});
+
+/* ---------- ניקוי ---------- */
+window.addEventListener('beforeunload', () => {
+  if (state.objectUrl) URL.revokeObjectURL(state.objectUrl);
+});
+</script>
+</body>
+</html>
